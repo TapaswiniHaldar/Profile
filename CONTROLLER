@@ -1,0 +1,157 @@
+1. Package Declaration
+java
+package com.example.utility1.controller;
+Defines the package where this class resides.
+
+Helps with organizing code logically in a project.
+
+This class belongs to the controller layer, which handles HTTP requests.
+
+2. Import Statements
+java
+import com.example.utility1.model.Product;
+import com.example.utility1.service.ProductService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+Explanation of Each Import
+Product → Represents the data model for a product.
+
+ProductService → Service class that contains business logic for managing products.
+
+RequiredArgsConstructor → Lombok annotation that automatically generates a constructor for required fields.
+
+ResponseEntity → Used to return HTTP responses with custom status codes and data.
+
+Spring Web Annotations (@RestController, @RequestMapping, etc.) → Define API endpoints.
+
+MultipartFile → Allows file uploads (used for Excel processing).
+
+List → Used for returning multiple products in responses.
+
+3. Class Definition
+java
+@RestController
+@RequestMapping("/api/product")
+@RequiredArgsConstructor
+public class ProductController {
+@RestController → Marks this class as a REST API controller.
+
+Handles HTTP requests and returns JSON responses.
+
+@RequestMapping("/api/product") → Specifies the base URL for all endpoints in this controller.
+
+Every API in this class starts with /api/product.
+
+@RequiredArgsConstructor → Lombok annotation that automatically generates a constructor for required fields.
+
+4. Class Field
+java
+private final ProductService productService;
+Declares a dependency on ProductService, which contains business logic.
+
+Spring automatically injects an instance using dependency injection.
+
+5. uploadExcel() - Upload & Process an Excel File
+java
+@PostMapping("/upload")
+public ResponseEntity<String> uploadExcel(@RequestParam("file") MultipartFile file) {
+@PostMapping("/upload") → Defines an HTTP POST endpoint at /api/product/upload.
+
+@RequestParam("file") MultipartFile file → Accepts an Excel file from the request.
+
+Inside the method:
+java
+List<Product> products = productService.createProducts(file);
+return ResponseEntity.ok("Excel processed successfully. Updated status where necessary.");
+Calls createProducts(file) in ProductService to process the uploaded file.
+
+Returns success response if the file is processed correctly.
+
+6. updateProductStatus() - Update a Product by ID
+java
+@PutMapping("/update/{productId}")
+public ResponseEntity<String> updateProductStatus(@PathVariable String productId) {
+@PutMapping("/update/{productId}") → Defines an HTTP PUT endpoint for updating a product.
+
+@PathVariable String productId → Extracts productId from the URL.
+
+Inside the method:
+java
+productService.updateProductStatusById(productId);
+return ResponseEntity.ok("Product record updated successfully.");
+Calls updateProductStatusById(productId) in ProductService to update product status.
+
+7. updateProductsList() - Bulk Update Products
+java
+@PutMapping("/update")
+public ResponseEntity<String> updateProductsList(@RequestParam("file") MultipartFile productUpdateFile) {
+@PutMapping("/update") → Defines an HTTP PUT endpoint for bulk updates.
+
+@RequestParam("file") MultipartFile productUpdateFile → Accepts an Excel file for bulk updates.
+
+Inside the method:
+java
+productService.updateProductsStatus(productUpdateFile);
+return ResponseEntity.ok("Bulk records updated successfully.");
+Calls updateProductsStatus(productUpdateFile) in ProductService to update multiple products.
+
+8. getProductById() - Fetch a Product by ID
+java
+@GetMapping("/{productId}")
+public ResponseEntity<Product> getProductById(@PathVariable String productId) {
+@GetMapping("/{productId}") → Defines an HTTP GET endpoint for retrieving a product.
+
+@PathVariable String productId → Extracts productId from the URL.
+
+Inside the method:
+java
+Product product = productService.getProductById(productId);
+return (product != null)
+        ? ResponseEntity.ok(product)
+        : ResponseEntity.status(404).body(null);
+Calls getProductById(productId) in ProductService to fetch product details.
+
+If the product exists, returns 200 OK with product data.
+
+If not found, returns 404 Not Found.
+
+9. getAllProducts() - Retrieve All Products
+java
+@GetMapping("/all")
+public ResponseEntity<List<Product>> getAllProducts() {
+@GetMapping("/all") → Defines an HTTP GET endpoint for fetching all products.
+
+Inside the method:
+java
+return ResponseEntity.ok(productService.getAllProducts());
+Calls getAllProducts() in ProductService to retrieve all products.
+
+Why Use a Controller?
+Handles API Requests
+
+Maps HTTP requests to Java methods (@GetMapping, @PostMapping, etc.).
+
+Encapsulates Business Logic
+
+Calls service methods instead of implementing logic directly.
+
+Enhances Code Maintainability
+
+Keeping controller logic separate from business logic improves clean coding.
+
+Uses Dependency Injection
+
+Spring injects ProductService automatically, reducing manual object creation.
+
+Final Takeaways
+Handles API requests for managing products.
+
+Uses ProductService to implement business logic.
+
+Supports file uploads, bulk updates, and CRUD operations.
+
+Uses Spring annotations for clear request handling.

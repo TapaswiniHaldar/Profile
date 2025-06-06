@@ -1,0 +1,110 @@
+1. Package Declaration
+java
+package com.example.utility1.repository;
+Defines the package where this interface resides.
+
+This groups related classes logically within the repository package.
+
+Helps organize code and prevent conflicts.
+
+2. Import Statements
+java
+import com.example.utility1.model.Product;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
+import java.util.List;
+Explanation of Each Import
+Product
+
+Represents the data model for a product.
+
+Likely a MongoDB entity mapped to a collection.
+
+MongoRepository<Product, String>
+
+Provides built-in database operations for MongoDB.
+
+Product → Defines the entity type.
+
+String → Represents the primary key type (productId).
+
+@Repository Annotation
+
+Marks this interface as a Spring-managed component.
+
+Enables dependency injection, meaning Spring automatically creates and manages instances.
+
+List
+
+Used to return multiple products from queries.
+
+3. Interface Declaration
+java
+public interface ProductRepository extends MongoRepository<Product, String> {
+Extends MongoRepository, which provides:
+
+CRUD operations (save(), findAll(), deleteById(), etc.).
+
+Pagination & Sorting features.
+
+Product → The entity being stored in MongoDB.
+
+String → The data type of the primary key (productId).
+
+4. Custom Query Methods
+Spring Data MongoDB allows custom queries simply by naming methods correctly!
+
+4.1 findByRemarks() - Finds Products by Remarks
+java
+List<Product> findByRemarks(String remarks);
+Queries MongoDB to retrieve products with a given remarks value.
+
+Example:
+
+java
+productRepository.findByRemarks("PURGED");
+Returns all products with remarks = "PURGED".
+
+4.2 findByStatus() - Finds Products by Status
+java
+List<Product> findByStatus(String status);
+Retrieves all products where status matches the provided value.
+
+Example:
+
+java
+List<Product> pendingProducts = productRepository.findByStatus("PENDING");
+Returns all products with status = "PENDING".
+
+4.3 findByProductId() - Finds a Single Product by ID
+java
+Product findByProductId(String productId);
+Retrieves a single product using its unique productId.
+
+Example:
+
+java
+Product p = productRepository.findByProductId("12345");
+Returns the product with ID "12345", or null if none exists.
+
+Why Use This Repository?
+Automatic Query Generation
+
+Spring Data creates queries automatically based on method names.
+
+Reduced Boilerplate Code
+
+No need for manual query definitions in most cases.
+
+No need to use MongoTemplate for simple queries.
+
+Optimized Performance
+
+Queries are executed efficiently using MongoDB indexing.
+
+Final Takeaways
+ProductRepository provides direct access to MongoDB.
+
+Extends MongoRepository<Product, String>, enabling CRUD operations automatically.
+
+Contains query methods to find products by remarks, status, and productId.

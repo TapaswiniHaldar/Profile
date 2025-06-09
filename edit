@@ -35,3 +35,412 @@
         }
         return List.of();
     }
+
+
+
+{
+        "id": null,
+        "proposalId": "79042334",
+        "previousStatus": "N/A",
+        "updatedStatus": "NOT FOUND"
+    }
+
+
+
+package com.example.utility1.service.implement;
+
+import com.example.utility1.constants.Constants;
+import com.example.utility1.model.Proposal;
+import com.example.utility1.model.ProposalStatus;
+import com.example.utility1.repository.ProposalRepository;
+import com.example.utility1.repository.ProposalStatusRepository;
+import com.example.utility1.service.ProposalService;
+import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+@RequiredArgsConstructor
+public class ProposalServiceImplement implements ProposalService {
+
+    private final ProposalRepository proposalRepository;
+    private final ProposalStatusRepository proposalStatusRepository;
+
+    private final MongoTemplate mongoTemplate;
+    private static final Logger logger = LoggerFactory.getLogger(ProposalServiceImplement.class);
+
+    @Override
+    public List<Proposal> readExcelFile(MultipartFile file) {
+        List<Proposal> proposals = new ArrayList<>();
+
+        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
+            Sheet sheet = workbook.getSheetAt(0);
+            boolean firstRow = true;
+
+            for (Row row : sheet) {
+                if (firstRow) {
+                    firstRow = false;
+                    continue;
+                }
+
+                try {
+                    Proposal proposal = Proposal.builder()
+                            .proposalId(row.getCell(0) != null ? String.valueOf((int) row.getCell(0).getNumericCellValue()) : null)
+                            .status(row.getCell(6) != null ? row.getCell(6).getStringCellValue() : "")
+                            .remarks(row.getCell(9) != null ? row.getCell(9).getStringCellValue() : "")
+                            .build();
+
+                    proposals.add(proposal);
+                } catch (Exception e) {
+                    logger.error("Error processing row: {}", e.getMessage());
+                }
+            }
+
+        } catch (Exception e) {
+            logger.error("Error reading Excel file: {}", e.getMessage());
+        }
+        return proposals;
+    }
+//    @Override
+//    public void updateProposalStatusById(String proposalId) {
+//        Proposal fetchProposal = getProposalById(proposalId);
+//        if (fetchProposal != null && fetchProposal.getRemarks().equalsIgnoreCase(Constants.REMARKS_PURGED)) {
+//            fetchProposal.setStatus(Constants.STATUS_REJECTED);
+//            mongoTemplate.save(fetchProposal);
+//        }
+//    }
+@Override
+public Proposal getProposalById(String proposalId) {
+    try {
+        Proposal proposal = proposalRepository.findByProposalId(proposalId);
+        if (proposal == null) {
+            logger.warn("Proposal {} not found in database.", proposalId);
+        }
+        return proposal;
+    } catch (Exception e) {
+        logger.error("DB error while fetching proposal {}: {}", proposalId, e.getMessage());
+        throw new RuntimeException(Constants.MESSAGE_TECHNICAL_ERROR);
+    }
+}
+
+//    @Override
+//    public void updateProposalStatusById(String proposalId) {
+//        Proposal fetchProposal = getProposalById(proposalId);
+//
+//        if (fetchProposal != null) {
+//            // Retrieve latest recorded status correctly
+////            Query query = new Query(Criteria.where("proposalId").is(proposalId))
+////                    .limit(1)
+////                    .with(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")); // Sorting by most recent timestamp
+////
+////            ProposalStatus lastStatus = mongoTemplate.findOne(query, ProposalStatus.class);
+//
+//            // Correctly set previous status from the last recorded update
+//        //    String previousStatus = (lastStatus != null) ? lastStatus.getPreviousStatus() : fetchProposal.getStatus();
+//String previousStatus=fetchProposal.getStatus();
+//            // Determine new status
+//            String updatedStatus = fetchProposal.getRemarks().equalsIgnoreCase(Constants.REMARKS_PURGED)
+//                    ? Constants.STATUS_REJECTED
+//                    : Constants.STATUS_INPROGRESS;
+//
+//            // Update proposal in the database
+//            fetchProposal.setStatus(updatedStatus);
+//          //  mongoTemplate.save(fetchProposal);
+//
+//            // Save updated status with proper previous status tracking
+//            ProposalStatus statusRecord = ProposalStatus.builder()
+//                    .proposalId(proposalId)
+//                    .previousStatus(previousStatus)  // Now correctly storing the actual last status before this update
+//                    .updatedStatus(updatedStatus)
+//                    .build();
+//
+//            proposalStatusRepository.save(statusRecord);
+//        } else {
+//            // If proposal is not found, return "NOT FOUND" status
+//            ProposalStatus notFoundStatus = ProposalStatus.builder()
+//                    .proposalId(proposalId)
+//                    .previousStatus(Constants.STATUS_NOT_FOUND)
+//                    .updatedStatus(Constants.STATUS_NOT_FOUND)
+//                    .build();
+//
+//            proposalStatusRepository.save(notFoundStatus);
+//        }
+//    }
+
+@Override
+public void updateProposalStatusById(String proposalId) {
+    Proposal fetchProposal = getProposalById(proposalId);
+
+    if (fetchProposal != null) {
+        String previousStatus = fetchProposal.getStatus();
+        String updatedStatus = fetchProposal.getRemarks().equalsIgnoreCase(Constants.REMARKS_PURGED)
+                ? Constants.STATUS_REJECTED
+                : Constants.STATUS_INPROGRESS;
+
+        fetchProposal.setStatus(updatedStatus);
+
+        ProposalStatus statusRecord = ProposalStatus.builder()
+                .proposalId(proposalId)
+                .previousStatus(previousStatus)
+                .updatedStatus(updatedStatus)
+                .build();
+
+        List<ProposalStatus> history = fetchProposal.getStatusHistory();
+        if (history == null) history = new ArrayList<>();
+        history.add(statusRecord);
+        fetchProposal.setStatusHistory(history);
+
+        mongoTemplate.save(fetchProposal);
+    } else {
+        logger.warn("Proposal with ID {} not found.", proposalId);
+    }
+}
+
+    @Override
+    public List<ProposalStatus> getStatusHistory(String proposalId) {
+        Proposal proposal = getProposalById(proposalId);
+        if (proposal != null && proposal.getStatusHistory() != null) {
+            return proposal.getStatusHistory();
+        }
+        return List.of();
+    }
+    @Override
+    public void updateProposalsStatus(MultipartFile ProposalUpdateFile) {
+        List<Proposal> Proposals = readExcelFile(ProposalUpdateFile);
+
+        if (Proposals.isEmpty()) {
+            logger.warn("No Proposals found in the uploaded file.");
+            return;
+        }
+
+        Proposals.forEach(Proposal -> {
+            Query query = new Query(Criteria.where("ProposalId").is(Proposal.getProposalId()));
+
+            String updatedStatus = "will be purged".equalsIgnoreCase(Proposal.getRemarks())
+                    ? Constants.STATUS_REJECTED
+                    : Constants.STATUS_INPROGRESS;
+
+            Update update = new Update().set("status", updatedStatus);
+            var result = mongoTemplate.updateFirst(query, update, Proposal.class);
+
+            if (result.getModifiedCount() > 0) {
+                logger.info("Updated ProposalId: {} → status set to {}", Proposal.getProposalId(), updatedStatus);
+            } else {
+                logger.warn("No records updated for ProposalId {}", Proposal.getProposalId());
+            }
+        });
+
+        logger.info("Batch update completed for {} Proposals.", Proposals.size());
+    }
+
+    @Override public List<Proposal> createProposals(MultipartFile proposalCreateFile)
+    {
+        List<Proposal> fetchProposals = new ArrayList<>();
+        readExcelFile(proposalCreateFile).forEach(proposal ->
+        { logger.info("Processing update for proposalId: {}", proposal.getProposalId());
+            fetchProposals.add(mongoTemplate.save(proposal)); }); return fetchProposals; }
+
+
+
+
+    @Override
+    public List<Proposal> getProposalsByStatus(String status) {
+        return proposalRepository.findByStatus(status);
+    }
+
+    @Override
+    public List<Proposal> getAllProposals() {
+        return proposalRepository.findAll();
+    }
+//
+
+//    @Override
+//    public List<ProposalStatus> getStatusHistory(String proposalId) {
+//        try {
+//            // Fetch the latest recorded status, sorted by timestamp
+//            Query query = new Query(Criteria.where("proposalId").is(proposalId))
+//                    .limit(1)
+//                    .with(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "_id")); // Sort by MongoDB's default `_id`
+//            ProposalStatus lastStatus = mongoTemplate.findOne(query, ProposalStatus.class);
+//
+//            if (lastStatus == null) {
+//                Proposal proposal = proposalRepository.findByProposalId(proposalId);
+//
+//                if (proposal == null) {
+//                    logger.warn("Proposal ID {} not found in DB.", proposalId);
+//                    return List.of(new ProposalStatus(null, proposalId, Constants.STATUS_NOT_FOUND, Constants.STATUS_NOT_FOUND));
+//                } else {
+//                   // return List.of(new ProposalStatus(null, proposalId, proposal.getStatus(), proposal.getStatus()));
+//                    return List.of(new ProposalStatus(null, proposalId, proposal.getStatus(), proposal.getStatus()));
+//                }
+//            }
+//
+//            return List.of(lastStatus); // Return the latest status instead of "INITIAL STATUS"
+//        } catch (Exception e) {
+//            logger.error("Database error while fetching status history for Proposal ID {}: {}", proposalId, e.getMessage());
+//            throw new RuntimeException(Constants.MESSAGE_TECHNICAL_ERROR);
+//        }
+//    }
+
+
+
+}
+package com.example.utility1.controller;
+
+import com.example.utility1.constants.Constants;
+import com.example.utility1.model.Proposal;
+import com.example.utility1.model.ProposalStatus;
+import com.example.utility1.service.ProposalService;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+import java.util.Map;
+
+/**
+ * REST Controller for managing Proposal records.
+ */
+@RestController
+@RequestMapping("/api/proposal")
+@RequiredArgsConstructor
+public class ProposalController {
+
+    private final ProposalService proposalService;
+    private static final Logger logger = LoggerFactory.getLogger(ProposalController.class);
+
+    /**
+     * Upload and process an Excel file to update Proposal records.
+     */
+    @PostMapping("/upload")
+    public ResponseEntity<String> uploadExcel(@RequestParam("file") MultipartFile file) {
+        try {
+            List<Proposal> proposals = proposalService.createProposals(file);
+            return ResponseEntity.ok("Excel processed successfully. Updated status where necessary.");
+        } catch (Exception e) {
+            logger.error("Error processing file upload: {}", e.getMessage());
+            return ResponseEntity.status(500).body(Constants.MESSAGE_TECHNICAL_ERROR);
+        }
+    }
+
+    /**
+     * Update a single Proposal record based on ProposalId.
+     */
+    @PutMapping("/update/{proposalId}")
+    public ResponseEntity<List<ProposalStatus>> updateProposalStatus(@PathVariable String proposalId) {
+        try {
+            proposalService.updateProposalStatusById(proposalId);
+            List<ProposalStatus> statusHistory = proposalService.getStatusHistory(proposalId);
+            return ResponseEntity.ok(statusHistory);
+        } catch (Exception e) {
+            logger.error("Error updating proposal status for {}: {}", proposalId, e.getMessage());
+            return ResponseEntity.status(500).body(List.of(
+                    new ProposalStatus(null, proposalId, "N/A", Constants.MESSAGE_TECHNICAL_ERROR)
+            ));
+        }
+    }
+
+    /**
+     * Bulk update multiple Proposals using a file.
+     */
+    @PutMapping("/update")
+    public ResponseEntity<String> updateProposalsList(@RequestParam("file") MultipartFile proposalUpdateFile) {
+        try {
+            proposalService.updateProposalsStatus(proposalUpdateFile);
+            return ResponseEntity.ok("Bulk records updated successfully.");
+        } catch (Exception e) {
+            logger.error("Error updating bulk proposals: {}", e.getMessage());
+            return ResponseEntity.status(500).body(Constants.MESSAGE_TECHNICAL_ERROR);
+        }
+    }
+
+    /**
+     * Fetch a single Proposal record by ProposalId.
+     */
+    @GetMapping("/{proposalId}")
+    public ResponseEntity<?> getProposalById(@PathVariable String proposalId) {
+        try {
+            Proposal proposal = proposalService.getProposalById(proposalId);
+
+            if (proposal == null) {
+                logger.warn("Proposal with ID {} not found in the database.", proposalId);
+                return ResponseEntity.status(404).body(Map.of("message", "Proposal not found", "proposalId", proposalId));
+            }
+
+            return ResponseEntity.ok(proposal);
+        } catch (Exception e) {
+            logger.error("Error fetching proposal ID {}: {}", proposalId, e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("message", Constants.MESSAGE_TECHNICAL_ERROR, "error", e.getMessage()));
+        }
+    }
+
+
+    /**
+     * Fetch all Proposal records.
+     */
+    @GetMapping("/all")
+    public ResponseEntity<List<Proposal>> getAllProposals() {
+        try {
+            return ResponseEntity.ok(proposalService.getAllProposals());
+        } catch (Exception e) {
+            logger.error("Error fetching all proposals: {}", e.getMessage());
+            return ResponseEntity.status(500).body(List.of());
+        }
+    }
+
+    /**
+     * Fetch status history for a Proposal.
+     */
+    @GetMapping("/{proposalId}/history")
+    public ResponseEntity<?> getProposalStatusHistory(@PathVariable String proposalId) {
+        try {
+            Proposal proposal = proposalService.getProposalById(proposalId);
+
+            if (proposal == null) {
+                logger.warn("Proposal with ID {} not found.", proposalId);
+                return ResponseEntity.status(404).body(Map.of("message", "Proposal not found", "proposalId", proposalId));
+            }
+
+            List<ProposalStatus> statusHistory = proposalService.getStatusHistory(proposalId);
+
+            if (statusHistory.isEmpty()) {
+                logger.warn("No status history found for Proposal ID {}.", proposalId);
+
+                ProposalStatus notFoundStatus = ProposalStatus.builder()
+                        .proposalId(proposalId)
+                        .previousStatus("N/A")
+                        .updatedStatus(Constants.STATUS_NOT_FOUND)
+                     //   .createdAt(System.currentTimeMillis())  // Ensure timestamp consistency
+                        .build();
+
+                return ResponseEntity.ok(List.of(notFoundStatus));
+            }
+
+            return ResponseEntity.ok(statusHistory);
+        } catch (Exception e) {
+            logger.error("Error fetching status history for Proposal ID {}: {}", proposalId, e.getMessage());
+            return ResponseEntity.status(500).body(Map.of("message", Constants.MESSAGE_TECHNICAL_ERROR, "error", e.getMessage()));
+        }
+    }
+
+}
+{
+        "id": null,
+        "proposalId": "79042334",
+        "previousStatus": "N/A",
+        "updatedStatus": "NOT FOUND"
+    }

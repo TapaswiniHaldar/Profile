@@ -1,0 +1,37 @@
+    @Override
+    public void updateProposalStatusById(String proposalId) {
+        Proposal fetchProposal = getProposalById(proposalId);
+
+        if (fetchProposal != null) {
+            String previousStatus = fetchProposal.getStatus();
+            String updatedStatus = fetchProposal.getRemarks().equalsIgnoreCase(Constants.REMARKS_PURGED)
+                    ? Constants.STATUS_REJECTED
+                    : Constants.STATUS_INPROGRESS;
+
+            fetchProposal.setStatus(updatedStatus);
+
+            ProposalStatus statusRecord = ProposalStatus.builder()
+                    .proposalId(proposalId)
+                    .previousStatus(previousStatus)
+                    .updatedStatus(updatedStatus)
+                    .build();
+
+            List<ProposalStatus> history = fetchProposal.getStatusHistory();
+            if (history == null) history = new ArrayList<>();
+            history.add(statusRecord);
+            fetchProposal.setStatusHistory(history);
+
+            mongoTemplate.save(fetchProposal);
+        } else {
+            logger.warn("Proposal with ID {} not found.", proposalId);
+        }
+    }
+
+    @Override
+    public List<ProposalStatus> getStatusHistory(String proposalId) {
+        Proposal proposal = getProposalById(proposalId);
+        if (proposal != null && proposal.getStatusHistory() != null) {
+            return proposal.getStatusHistory();
+        }
+        return List.of();
+    }

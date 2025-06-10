@@ -1,157 +1,976 @@
-1. Package Declaration
-java
+Package Declaration & Imports
+
+
 package com.example.utility1.controller;
-Defines the package where this class resides.
+This defines the package where the controller class resides. It ensures proper organization of code.
 
-Helps with organizing code logically in a project.
 
-This class belongs to the controller layer, which handles HTTP requests.
+These imports bring in:
 
-2. Import Statements
-java
-import com.example.utility1.model.Product;
-import com.example.utility1.service.ProductService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
+Spring components (@RestController, ResponseEntity, MultipartFile, etc.).
 
-import java.util.List;
-Explanation of Each Import
-Product → Represents the data model for a product.
+SLF4J logging (Logger & LoggerFactory).
 
-ProductService → Service class that contains business logic for managing products.
+Lombok annotations (@RequiredArgsConstructor to auto-generate the constructor).
 
-RequiredArgsConstructor → Lombok annotation that automatically generates a constructor for required fields.
+Data structures (LinkedHashMap, List, Map).
 
-ResponseEntity → Used to return HTTP responses with custom status codes and data.
 
-Spring Web Annotations (@RestController, @RequestMapping, etc.) → Define API endpoints.
-
-MultipartFile → Allows file uploads (used for Excel processing).
-
-List → Used for returning multiple products in responses.
-
-3. Class Definition
-java
 @RestController
-@RequestMapping("/api/product")
-@RequiredArgsConstructor
-public class ProductController {
-@RestController → Marks this class as a REST API controller.
+A Spring annotation that marks a class as a RESTful controller.
 
-Handles HTTP requests and returns JSON responses.
+Handles HTTP requests and returns data in JSON or XML format.
 
-@RequestMapping("/api/product") → Specifies the base URL for all endpoints in this controller.
+Combines @Controller and @ResponseBody.
 
-Every API in this class starts with /api/product.
+Example:
 
-@RequiredArgsConstructor → Lombok annotation that automatically generates a constructor for required fields.
 
-4. Class Field
+@RestController
+@RequestMapping("/api")
+public class MyController {
+    @GetMapping("/greet")
+    public String greet() {
+        return "Hello from REST Controller!";
+    }
+}
+
+2️⃣ ResponseEntity
+A wrapper for HTTP responses, allowing you to define status codes, headers, and body data.
+
+Helps handle error responses properly.
+
+Example:
+
 java
-private final ProductService productService;
-Declares a dependency on ProductService, which contains business logic.
+@GetMapping("/status")
+public ResponseEntity<String> getStatus() {
+    return ResponseEntity.status(HttpStatus.OK).body("Server is running!");
+}
 
-Spring automatically injects an instance using dependency injection.
+3️⃣ MultipartFile
+Represents an uploaded file in a Spring controller.
 
-5. uploadExcel() - Upload & Process an Excel File
+Used for handling file uploads via HTTP requests.
+
+Example:
+
 java
 @PostMapping("/upload")
-public ResponseEntity<String> uploadExcel(@RequestParam("file") MultipartFile file) {
-@PostMapping("/upload") → Defines an HTTP POST endpoint at /api/product/upload.
+public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
+    if (file.isEmpty()) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("File is empty!");
+    }
+    return ResponseEntity.ok("File uploaded successfully: " + file.getOriginalFilename());
+}
 
-@RequestParam("file") MultipartFile file → Accepts an Excel file from the request.
 
-Inside the method:
+SLF4J Logging (Logger & LoggerFactory)
+SLF4J (Simple Logging Facade for Java) is a logging framework that allows easy integration with logging libraries like Logback and Log4j.
+
+LoggerFactory is used to create logger instances.
+
+Helps track issues by logging error, warning, and info messages.
+
+Example:
+
 java
-List<Product> products = productService.createProducts(file);
-return ResponseEntity.ok("Excel processed successfully. Updated status where necessary.");
-Calls createProducts(file) in ProductService to process the uploaded file.
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-Returns success response if the file is processed correctly.
+public class LoggingExample {
+    private static final Logger logger = LoggerFactory.getLogger(LoggingExample.class);
 
-6. updateProductStatus() - Update a Product by ID
+    public static void main(String[] args) {
+        logger.info("Application started!");
+        logger.warn("Low disk space!");
+        logger.error("An unexpected error occurred!");
+    }
+}
+Lombok Annotation: @RequiredArgsConstructor
+Automatically generates a constructor for all final fields.
+
+Reduces boilerplate code in Spring components.
+
+Example Without Lombok:
+
 java
-@PutMapping("/update/{productId}")
-public ResponseEntity<String> updateProductStatus(@PathVariable String productId) {
-@PutMapping("/update/{productId}") → Defines an HTTP PUT endpoint for updating a product.
+public class UserService {
+    private final UserRepository userRepository;
 
-@PathVariable String productId → Extracts productId from the URL.
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+}
+Example Using Lombok (@RequiredArgsConstructor):
 
-Inside the method:
 java
-productService.updateProductStatusById(productId);
-return ResponseEntity.ok("Product record updated successfully.");
-Calls updateProductStatusById(productId) in ProductService to update product status.
+import lombok.RequiredArgsConstructor;
 
-7. updateProductsList() - Bulk Update Products
+@RequiredArgsConstructor
+public class UserService {
+    private final UserRepository userRepository; // No need for explicit constructor
+}
+
+
+✅ Lombok auto-generates the constructor at compile time!
+
+Common Data Structures in Java
+Java provides useful collections for managing data efficiently.
+
+1️⃣ LinkedHashMap
+A Map that maintains insertion order.
+
+Provides fast key-based lookups.
+
+Example:
+
 java
-@PutMapping("/update")
-public ResponseEntity<String> updateProductsList(@RequestParam("file") MultipartFile productUpdateFile) {
-@PutMapping("/update") → Defines an HTTP PUT endpoint for bulk updates.
+LinkedHashMap<String, Integer> scores = new LinkedHashMap<>();
+scores.put("Alice", 85);
+scores.put("Bob", 90);
+System.out.println(scores); // Output: {Alice=85, Bob=90}
 
-@RequestParam("file") MultipartFile productUpdateFile → Accepts an Excel file for bulk updates.
+2️⃣ List
+A flexible, ordered collection of elements.
 
-Inside the method:
+Example:
+
 java
-productService.updateProductsStatus(productUpdateFile);
-return ResponseEntity.ok("Bulk records updated successfully.");
-Calls updateProductsStatus(productUpdateFile) in ProductService to update multiple products.
+List<String> names = new ArrayList<>();
+names.add("John");
+names.add("Jane");
+System.out.println(names); // Output: [John, Jane]
 
-8. getProductById() - Fetch a Product by ID
+3️⃣ Map
+A key-value data structure used for efficient lookups.
+
+Example:
+
 java
-@GetMapping("/{productId}")
-public ResponseEntity<Product> getProductById(@PathVariable String productId) {
-@GetMapping("/{productId}") → Defines an HTTP GET endpoint for retrieving a product.
+Map<String, String> countryCodes = Map.of("US", "United States", "IN", "India");
+System.out.println(countryCodes.get("IN")); // Output: India
 
-@PathVariable String productId → Extracts productId from the URL.
 
-Inside the method:
+@RestController → Marks this class as a REST API controller.
+
+@RequestMapping("/api/proposal") → Defines the base endpoint for all routes (/api/proposal).
+
+@RequiredArgsConstructor → Auto-generates a constructor for final fields.
+
+private final ProposalService proposalService;
+private static final Logger logger = LoggerFactory.getLogger(ProposalController.class);
+ProposalService proposalService → Injects service logic for handling proposals.
+
+Logger logger → Enables logging messages for debugging.
+
+
+
+
+
+
+
+
+
+
+
+
+processProposals() - Handling Proposal File Upload
 java
-Product product = productService.getProductById(productId);
-return (product != null)
-        ? ResponseEntity.ok(product)
-        : ResponseEntity.status(404).body(null);
-Calls getProductById(productId) in ProductService to fetch product details.
+@PostMapping("/process")
+public ResponseEntity<Map<String, Object>> processProposals(@RequestParam(value = "file", required = false) MultipartFile file) {
+@PostMapping("/process") → Defines the endpoint POST /api/proposal/process.
 
-If the product exists, returns 200 OK with product data.
+MultipartFile file → Represents an uploaded Excel file.
 
-If not found, returns 404 Not Found.
-
-9. getAllProducts() - Retrieve All Products
+✅ Validation for Missing File
 java
-@GetMapping("/all")
-public ResponseEntity<List<Product>> getAllProducts() {
-@GetMapping("/all") → Defines an HTTP GET endpoint for fetching all products.
+if (file == null || file.isEmpty()) {
+    logger.error("No file provided in the request.");
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(Map.of("message", "Error: No file uploaded. Please provide an Excel file."));
+}
+Checks if the file is missing or empty.
 
-Inside the method:
+Logs an error and returns a 400 BAD REQUEST response.
+
+✅ Processing File with Service Method
 java
-return ResponseEntity.ok(productService.getAllProducts());
-Calls getAllProducts() in ProductService to retrieve all products.
+List<ProposalStatus> statusUpdates = proposalService.processProposals(file);
+Calls processProposals(file) in ProposalService.
 
-Why Use a Controller?
-Handles API Requests
+This method extracts data from Excel and updates the database.
 
-Maps HTTP requests to Java methods (@GetMapping, @PostMapping, etc.).
+✅ Successful Response Handling
+java
+response.put("message", "Batch processing completed successfully.");
+response.put("updatedProposals", statusUpdates.size());
+response.put("statusUpdates", statusUpdates);
+logger.info("Bulk processing completed successfully for {} proposals.", statusUpdates.size());
+return ResponseEntity.ok(response);
+Stores success details in response.
 
-Encapsulates Business Logic
+Logs the number of processed proposals.
 
-Calls service methods instead of implementing logic directly.
+Returns 200 OK with proposal updates.
 
-Enhances Code Maintainability
+✅ Error Handling with Logging
+java
+} catch (Exception e) {
+    logger.error("Error processing proposals: {}", e.getMessage(), e);
+    response.put("message", "Technical error during batch processing.");
+    response.put("error", e.getMessage());
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(Map.of("message", "Technical error due to file handling or database failure", "error", e.getMessage()));
+}
+Catches errors during file processing.
 
-Keeping controller logic separate from business logic improves clean coding.
+Logs the exception and returns 500 INTERNAL SERVER ERROR.
 
-Uses Dependency Injection
+2️⃣ processProposalsBatch() - Handling Large Batches
+java
+@PostMapping("/process-batch")
+public ResponseEntity<Map<String, Object>> processProposalsBatch(
+        @RequestParam(value = "file") MultipartFile file,
+        @RequestParam(value = "pageSize", defaultValue = "500") Integer pageSize,
+        @RequestParam(value = "updateLimit", defaultValue = "1000") Integer updateLimit) {
+@PostMapping("/process-batch") → Defines endpoint POST /api/proposal/process-batch.
 
-Spring injects ProductService automatically, reducing manual object creation.
+pageSize → Controls pagination size (default 500).
 
-Final Takeaways
-Handles API requests for managing products.
+updateLimit → Limits maximum database updates (default 1000).
 
-Uses ProductService to implement business logic.
+✅ Validation Checks
+java
+if (file == null || file.isEmpty()) {
+    logger.error("No file provided in the request.");
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(Map.of("message", "Error: No file uploaded. Please provide an Excel file."));
+}
 
-Supports file uploads, bulk updates, and CRUD operations.
+if (pageSize == null || pageSize <= 0) {
+    logger.error("Invalid pageSize provided: {}", pageSize);
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(Map.of("message", "Error: Invalid pageSize. Please provide a valid positive number."));
+}
 
-Uses Spring annotations for clear request handling.
+if (updateLimit == null || updateLimit <= 0) {
+    logger.error("Invalid updateLimit provided: {}", updateLimit);
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(Map.of("message", "Error: Invalid updateLimit. Please provide a valid positive number."));
+}
+Ensures file is present.
+
+Checks valid pageSize & updateLimit parameters.
+
+Returns 400 BAD REQUEST if validation fails.
+
+✅ Calling Batch Processing in Service
+java
+List<ProposalStatus> statusUpdates = proposalService.processProposalsBatch(file, pageSize, updateLimit);
+Calls processProposalsBatch(file, pageSize, updateLimit) in ProposalService.
+
+Processes large numbers of proposals efficiently.
+
+✅ Success Response Handling
+java
+response.put("message", "Batch processing completed successfully.");
+response.put("updatedProposals", statusUpdates.size());
+response.put("statusUpdates", statusUpdates);
+logger.info("Batch processing completed successfully for {} proposals.", statusUpdates.size());
+return ResponseEntity.ok(response);
+Logs success and returns 200 OK.
+
+✅ Error Handling
+java
+} catch (Exception e) {
+    logger.error("Error processing batch proposals: {}", e.getMessage(), e);
+    response.put("message", "Technical error during batch processing.");
+    response.put("error", e.getMessage());
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+            .body(Map.of("message", "Technical error due to file handling or database failure", "error", e.getMessage()));
+}
+Catches errors and logs them.
+
+Returns 500 INTERNAL SERVER ERROR
+
+
+
+Package Declaration & Imports
+java
+package com.example.utility1.service.implement;
+Defines the package for the service implementation.
+
+
+1️⃣ @Service
+A Spring annotation used to mark business logic classes.
+
+Helps indicate that the class holds service-layer logic.
+
+Works along with @Component and @Autowired.
+
+Example:
+
+java
+@Service
+public class ProposalService {
+    public String processProposal() {
+        return "Proposal processed!";
+    }
+}
+2️⃣ MultipartFile
+Used for file uploads in Spring Boot.
+
+Allows handling binary file data from HTTP requests.
+
+Example:
+
+java
+@PostMapping("/upload")
+public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile file) {
+    if (file.isEmpty()) {
+        return ResponseEntity.badRequest().body("File is empty!");
+    }
+    return ResponseEntity.ok("File uploaded successfully: " + file.getOriginalFilename());
+}
+3️⃣ Pageable
+Helps with pagination and sorting when retrieving large data sets.
+
+Works with PageRequest to structure database queries.
+
+Example:
+
+java
+@GetMapping("/proposals")
+public Page<Proposal> getProposals(Pageable pageable) {
+    return proposalRepository.findAll(pageable);
+}
+Lombok: @RequiredArgsConstructor
+Auto-generates a constructor for final fields.
+
+Reduces boilerplate code for dependency injection.
+
+Example:
+
+java
+@RequiredArgsConstructor
+@Service
+public class ProposalService {
+    private final ProposalRepository proposalRepository; // No need for explicit constructor
+}
+MongoDB Components
+1️⃣ MongoTemplate
+Provides flexible query capabilities in MongoDB.
+
+Allows direct MongoDB operations like findOne, updateFirst, and delete.
+
+Example:
+
+java
+public Proposal findProposal(String proposalId) {
+    Query query = new Query(Criteria.where("proposalId").is(proposalId));
+    return mongoTemplate.findOne(query, Proposal.class);
+}
+2️⃣ BulkOperations
+Used for batch updates/inserts in MongoDB.
+
+Efficient for handling large-scale modifications.
+
+Example:
+
+java
+BulkOperations bulkOps = mongoTemplate.bulkOps(BulkOperations.BulkMode.UNORDERED, Proposal.class);
+bulkOps.updateOne(new Query(Criteria.where("proposalId").is("123")), new Update().set("status", "APPROVED"));
+bulkOps.execute();
+Apache POI for Excel Handling
+1️⃣ Workbook
+Represents an Excel file in Java.
+
+Can be XSSFWorkbook (for .xlsx) or HSSFWorkbook (for .xls).
+
+Example:
+
+java
+Workbook workbook = new XSSFWorkbook(new FileInputStream("data.xlsx"));
+2️⃣ Sheet
+Represents an individual sheet inside a workbook.
+
+Example:
+
+java
+Sheet sheet = workbook.getSheetAt(0);
+Row row = sheet.getRow(1);
+Cell cell = row.getCell(2);
+System.out.println(cell.getStringCellValue());
+SLF4J Logging (Logger)
+Helps track application events for debugging and monitoring.
+
+Example:
+
+java
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class LoggingExample {
+    private static final Logger logger = LoggerFactory.getLogger(LoggingExample.class);
+
+    public void process() {
+        logger.info("Processing started...");
+        try {
+            // Some logic
+        } catch (Exception e) {
+            logger.error("Error occurred: {}", e.getMessage());
+        }
+    }
+}
+
+
+
+
+Class Declaration & Fields
+java
+@Service
+@RequiredArgsConstructor
+public class ProposalServiceImplement implements ProposalService {
+Annotations Explained:
+@Service → Marks the class as a Spring service component.
+
+@RequiredArgsConstructor → Automatically creates a constructor for final fields.
+
+java
+private final ProposalRepository proposalRepository;
+private final ProposalStatusRepository proposalStatusRepository;
+private final MongoTemplate mongoTemplate;
+private static final Logger logger = LoggerFactory.getLogger(ProposalServiceImplement.class);
+Injected Dependencies Explained:
+proposalRepository → Handles CRUD operations for Proposal documents.
+
+proposalStatusRepository → Stores proposal status updates.
+
+mongoTemplate → Allows custom MongoDB queries and bulk updates.
+
+Logger → Logs key actions for debugging and tracking.
+
+1️⃣ Read Excel File and Parse Data
+java
+public List<Proposal> readExcelFile(MultipartFile file) {
+    List<Proposal> proposals = new ArrayList<>();
+    List<String> proposalIds = new ArrayList<>();
+Initializes two lists: 1️⃣ proposals → Stores extracted Proposal objects. 2️⃣ proposalIds → Tracks unique proposal IDs.
+
+java
+try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
+Loads Excel workbook from the uploaded file.
+
+java
+Sheet sheet = workbook.getSheetAt(0);
+boolean firstRow = true;
+Retrieves first sheet and tracks headers (first row).
+
+java
+for (Row row : sheet) {
+    if (firstRow) {
+        firstRow = false;
+        continue;
+    }
+Skips the header row and iterates over data rows.
+
+java
+String proposalId = getCellValue(row.getCell(0)).trim();
+if (proposalId.isEmpty()) {
+    logger.warn("Skipping row {}: Missing productId", row.getRowNum());
+    continue;
+}
+Extracts proposalId, skips rows with missing IDs.
+
+java
+proposalIds.add(proposalId);
+Proposal proposal = Proposal.builder()
+        .proposalId(proposalId)
+        .date(getCellValue(row.getCell(1)))
+        .proposalCode(getCellValue(row.getCell(2)))
+        .proposalName(getCellValue(row.getCell(3)))
+        .channel(getCellValue(row.getCell(4)))
+        .quoteId(getCellValue(row.getCell(5)))
+        .status(getCellValue(row.getCell(6)))
+        .paymentMode(getCellValue(row.getCell(7)))
+        .paymentStatus(getCellValue(row.getCell(8)))
+        .remarks(getCellValue(row.getCell(9)))
+        .build();
+Creates a Proposal object from Excel row values.
+
+java
+proposals.add(proposal);
+Adds proposal to the list.
+
+java
+} catch (Exception e) {
+    logger.error("Error processing row: {}", e.getMessage());
+}
+Catches row-level errors.
+
+java
+} catch (Exception e) {
+    logger.error("Error reading Excel file: {}", e.getMessage());
+}
+Handles general Excel file errors.
+
+2️⃣ Extract Cell Values Safely
+java
+private String getCellValue(Cell cell) {
+    if (cell == null) return "";
+    return switch (cell.getCellType()) {
+        case STRING -> cell.getStringCellValue();
+        case NUMERIC -> String.valueOf((int) cell.getNumericCellValue());
+        case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
+        default -> "";
+    };
+}
+Handles different cell types (STRING, NUMERIC, BOOLEAN).
+
+3️⃣ Retrieve Proposal By ID
+java
+public Proposal getProposalById(String proposalId) {
+Retrieves a proposal from MongoDB.
+
+java
+Proposal proposal = proposalRepository.findByProposalId(proposalId);
+if (proposal == null) {
+    logger.warn("Proposal {} not found in database.", proposalId);
+    return Proposal.builder()
+            .proposalId(proposalId)
+            .status(Constants.STATUS_NOT_FOUND)
+            .remarks("Proposal does not exist")
+            .build();
+}
+Handles cases where a proposal does not exist.
+
+java
+} catch (Exception e) {
+    logger.error("DB error while fetching proposal {}: {}", proposalId, e.getMessage());
+    throw new RuntimeException("Technical error due to database issue");
+}
+Logs database errors.
+
+4️⃣ Update Proposal Status
+java
+public void updateProposalStatusById(String proposalId) {
+Updates the status of a specific proposal.
+
+java
+Proposal fetchProposal = getProposalById(proposalId);
+Fetches the existing proposal.
+
+java
+ProposalStatus lastStatusRecord = proposalStatusRepository.findTopByProposalIdOrderByIdDesc(proposalId);
+String previousStatus = lastStatusRecord != null ? lastStatusRecord.getUpdatedStatus() : fetchProposal.getStatus();
+Retrieves the last recorded status.
+
+java
+String updatedStatus = fetchProposal.getRemarks().equalsIgnoreCase(Constants.REMARKS_PURGED)
+        ? Constants.STATUS_REJECTED
+        : Constants.STATUS_INPROGRESS;
+Decides new status based on remarks.
+
+java
+if (!fetchProposal.getStatus().equals(updatedStatus)) {
+Prevents unnecessary updates.
+
+java
+mongoTemplate.save(fetchProposal);
+Saves the updated proposal in MongoDB.
+
+5️⃣ Bulk Update Proposal Statuses
+java
+public void updateProposalsStatus(MultipartFile proposalUpdateFile) {
+Updates multiple proposals using an Excel file.
+
+java
+Query query = new Query(Criteria.where("proposalId").is(proposal.getProposalId())
+        .and("status").in(Constants.STATUS_INPROGRESS, Constants.STATUS_PENDING));
+Finds proposals only if they are IN_PROGRESS or PENDING.
+
+java
+Update update = new Update().set("status", updatedStatus);
+var result = mongoTemplate.updateFirst(query, update, Proposal.class);
+Applies bulk updates efficiently.
+
+java
+proposalStatusRepository.save(statusRecord);
+Stores status history.
+
+6️⃣ Create New Proposals
+java
+public List<Proposal> createProposals(MultipartFile proposalCreateFile) {
+Creates new proposals.
+
+java
+List<Proposal> fetchProposals = new ArrayList<>();
+readExcelFile(proposalCreateFile).forEach(proposal -> {
+    logger.info("Processing update for proposalId: {}", proposal.getProposalId());
+    fetchProposals.add(mongoTemplate.save(proposal));
+});
+Parses Excel file and saves proposals to MongoDB.
+
+
+
+Retrieving Proposals by Status
+java
+public List<Proposal> getProposalsByStatus(String status) {
+    return proposalRepository.findByStatus(status);
+}
+✅ Purpose:
+
+Queries the database for proposals with a specific status using proposalRepository.findByStatus(status).
+
+Returns a list of proposals matching the given status.
+
+✅ Key Components:
+
+proposalRepository.findByStatus(status): Retrieves proposals from MongoDB.
+
+Retrieving All Proposals
+java
+public List<Proposal> getAllProposals() {
+    return proposalRepository.findAll();
+}
+✅ Purpose:
+
+Fetches all proposals from the database using proposalRepository.findAll().
+
+Returns a complete list of proposals.
+
+✅ Key Components:
+
+proposalRepository.findAll(): Returns all proposals stored in MongoDB.
+
+Fetching Status History for a Proposal
+java
+public List<ProposalStatus> getStatusHistory(String proposalId) {
+✅ Purpose:
+
+Retrieves the latest status update for a given proposalId.
+
+java
+try {
+    Query query = new Query(Criteria.where("proposalId").is(proposalId))
+            .limit(1)
+            .with(org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "_id"));
+✅ Key Components:
+
+MongoDB Query → Searches for proposalId and sorts results in descending order (DESC) by _id (most recent first).
+
+Limit (1) ensures that only the latest status update is retrieved.
+
+java
+ProposalStatus lastStatus = mongoTemplate.findOne(query, ProposalStatus.class);
+✅ Purpose:
+
+Retrieves the most recent status update for the proposal.
+
+Handling Cases Where Status Is Not Found
+java
+if (lastStatus == null) {
+    Proposal proposal = proposalRepository.findByProposalId(proposalId);
+✅ Checks if lastStatus is null:
+
+If null, the function searches for the actual proposal using proposalRepository.findByProposalId(proposalId).
+
+Handling Missing Proposal Cases
+java
+if (proposal == null) {
+    logger.warn("Proposal ID {} not found in DB.", proposalId);
+    return List.of(new ProposalStatus(null, proposalId, Constants.STATUS_NOT_FOUND, Constants.STATUS_NOT_FOUND));
+✅ Purpose:
+
+If the proposal does not exist, return a ProposalStatus object with "STATUS_NOT_FOUND".
+
+java
+} else {
+    return List.of(new ProposalStatus(null, proposalId, proposal.getStatus(), proposal.getStatus()));
+}
+✅ If the proposal exists, returns its current status.
+
+Catching Database Errors
+java
+} catch (Exception e) {
+    logger.error("Database error while fetching status history for Proposal ID {}: {}", proposalId, e.getMessage());
+    throw new RuntimeException("Technical error due to database issue");
+}
+✅ Logs database errors and throws an exception.
+
+Processing Proposal Files
+java
+@Override
+public List<ProposalStatus> processProposals(MultipartFile file) {
+✅ Purpose:
+
+Processes an uploaded Excel file and updates proposals accordingly.
+
+java
+List<ProposalStatus> statusUpdates = new ArrayList<>();
+✅ Initializes a list to store proposal status updates.
+
+Validating the File
+java
+try {
+    if (file == null || file.isEmpty()) {
+        logger.error("No file provided in the request.");
+        throw new RuntimeException("Error: No file uploaded. Please provide an Excel file.");
+    }
+✅ Checks if file is null or empty → Throws an error if invalid.
+
+Reading and Validating Proposal Data
+java
+List<Proposal> proposals = readExcelFile(file);
+if (proposals.isEmpty()) {
+    logger.warn("No valid proposals found in the file.");
+    throw new RuntimeException("Error: No valid proposal data in the file.");
+}
+✅ Reads proposals from the Excel file. ✅ Throws an error if no valid proposals are found.
+
+Creating and Updating Proposals
+java
+List<Proposal> createdProposals = createProposals(file);
+updateProposalsStatus(file);
+✅ Creates new proposals from the uploaded file. ✅ Calls updateProposalsStatus(file) to update statuses.
+
+Processing Proposal History
+java
+createdProposals.forEach(proposal -> {
+    try {
+        List<ProposalStatus> proposalHistory = getStatusHistory(proposal.getProposalId());
+✅ Loops through newly created proposals. ✅ Retrieves the status history of each proposal.
+
+java
+if (!proposalHistory.isEmpty()) {
+    ProposalStatus latestStatus = proposalHistory.get(0);
+    statusUpdates.add(latestStatus);
+    logger.info("Processed Proposal ID {} → Status: {}", proposal.getProposalId(), latestStatus.getUpdatedStatus());
+}
+✅ Adds latest status to statusUpdates. ✅ Logs the processed proposal details.
+
+Catching Errors During Processing
+java
+} catch (Exception e) {
+    logger.error("Error processing Proposal ID {}: {}", proposal.getProposalId(), e.getMessage());
+}
+✅ Logs errors occurring during proposal processing.
+
+Logging and Returning Results
+java
+logger.info("Completed processing {} proposals.", statusUpdates.size());
+return statusUpdates;
+✅ Logs and returns the list of processed proposals.
+
+Catching Errors in File Processing
+java
+} catch (Exception e) {
+    logger.error("Error processing proposals: {}", e.getMessage());
+    throw new RuntimeException("Technical error due to file handling or database failure");
+}
+✅ Handles unexpected issues, ensuring the process does not crash.
+
+
+
+
+1️⃣ processProposals(MultipartFile file)
+This method processes uploaded Excel files, creating and updating proposals accordingly.
+
+java
+@Override
+public List<ProposalStatus> processProposals(MultipartFile file) {
+✅ Indicates this method overrides an interface method (ProposalService). ✅ Returns a list of ProposalStatus objects, showing updated proposal statuses.
+
+java
+List<ProposalStatus> statusUpdates = new ArrayList<>();
+✅ Initializes an empty list to store proposal status updates.
+
+✅ Validate the Uploaded File
+java
+if (file == null || file.isEmpty()) {
+    logger.error("No file provided in the request.");
+    throw new RuntimeException("Error: No file uploaded. Please provide an Excel file.");
+}
+✅ Checks if the uploaded file is missing or empty. ✅ Logs an error and throws an exception.
+
+✅ Read Proposals from Excel
+java
+List<Proposal> proposals = readExcelFile(file);
+if (proposals.isEmpty()) {
+    logger.warn("No valid proposals found in the file.");
+    throw new RuntimeException("Error: No valid proposal data in the file.");
+}
+✅ Extracts proposals from the Excel file using readExcelFile(file). ✅ Throws an exception if no valid data is found.
+
+✅ Create and Update Proposals
+java
+List<Proposal> createdProposals = createProposals(file);
+updateProposalsStatus(file);
+✅ Creates new proposals using createProposals(file). ✅ Updates proposal statuses using updateProposalsStatus(file).
+
+✅ Retrieve and Store Status History
+java
+createdProposals.forEach(proposal -> {
+    try {
+        List<ProposalStatus> proposalHistory = getStatusHistory(proposal.getProposalId());
+✅ Loops through newly created proposals. ✅ Retrieves status history using getStatusHistory(proposal.getProposalId()).
+
+java
+if (!proposalHistory.isEmpty()) {
+    ProposalStatus latestStatus = proposalHistory.get(0);
+    statusUpdates.add(latestStatus);
+    logger.info("Processed Proposal ID {} → Status: {}", proposal.getProposalId(), latestStatus.getUpdatedStatus());
+}
+✅ Stores the latest proposal status and logs the update.
+
+java
+} catch (Exception e) {
+    logger.error("Error processing Proposal ID {}: {}", proposal.getProposalId(), e.getMessage());
+}
+✅ Logs errors occurring during status retrieval.
+
+✅ Final Logging and Returning Results
+java
+logger.info("Completed processing {} proposals.", statusUpdates.size());
+return statusUpdates;
+✅ Logs total proposals processed. ✅ Returns the list of status updates.
+
+2️⃣ createProposalsBatch(List<Proposal> batch)
+Creates a batch of proposals and inserts them into the database.
+
+java
+public List<Proposal> createProposalsBatch(List<Proposal> batch) {
+✅ Accepts a list of Proposal objects for batch creation.
+
+java
+List<Proposal> createdProposals = new ArrayList<>();
+✅ Initializes an empty list to store successfully created proposals.
+
+✅ Insert Proposals into Database
+java
+batch.forEach(proposal -> {
+    try {
+        Proposal savedProposal = mongoTemplate.save(proposal);
+        createdProposals.add(savedProposal);
+        logger.info("Created Proposal ID: {}", proposal.getProposalId());
+    } catch (Exception e) {
+        logger.error("Error creating Proposal ID {}: {}", proposal.getProposalId(), e.getMessage());
+    }
+});
+✅ Loops through batch, saving each proposal to MongoDB using mongoTemplate.save(proposal). ✅ Logs each creation.
+
+✅ Handle Errors in Batch Creation
+java
+} catch (Exception e) {
+    logger.error("Error in batch proposal creation: {}", e.getMessage());
+    throw new RuntimeException("Technical error during batch proposal creation.");
+}
+✅ Logs unexpected errors.
+
+java
+return createdProposals;
+✅ Returns the list of created proposals.
+
+3️⃣ updateProposalsStatusBatch(List<Proposal> proposals)
+Updates the status of a batch of proposals.
+
+java
+public void updateProposalsStatusBatch(List<Proposal> proposals) {
+✅ Accepts a list of Proposal objects to update.
+
+java
+proposals.forEach(proposal -> {
+    try {
+        Query query = new Query(Criteria.where("proposalId").is(proposal.getProposalId()));
+        Proposal fetchProposal = mongoTemplate.findOne(query, Proposal.class);
+✅ Finds existing proposals in MongoDB. ✅ Queries by proposalId using mongoTemplate.findOne(query, Proposal.class).
+
+✅ Handle Missing Proposal Cases
+java
+if (fetchProposal == null) {
+    logger.warn("Skipping Proposal ID {} as it does not exist", proposal.getProposalId());
+    return;
+}
+✅ Logs a warning if a proposal does not exist, preventing unnecessary updates.
+
+✅ Retrieve Last Status Record
+java
+ProposalStatus lastStatusRecord = proposalStatusRepository.findTopByProposalIdOrderByIdDesc(proposal.getProposalId());
+String previousStatus = lastStatusRecord != null ? lastStatusRecord.getUpdatedStatus() : fetchProposal.getStatus();
+✅ Gets the most recent status from proposalStatusRepository.
+
+✅ Determine Updated Status
+java
+String updatedStatus = Constants.REMARKS_PURGED.equalsIgnoreCase(proposal.getRemarks())
+        ? Constants.STATUS_REJECTED
+        : Constants.STATUS_COMPLETED;
+✅ Decides the new proposal status based on remarks.
+
+✅ Perform Status Update
+java
+Update update = new Update().set("status", updatedStatus);
+var result = mongoTemplate.updateFirst(query, update, Proposal.class);
+✅ Updates the status in MongoDB.
+
+✅ Store Status Record and Log Update
+java
+if (result.getModifiedCount() > 0) {
+    logger.info("Updated Proposal ID {} → Status changed from '{}' to '{}'",
+            proposal.getProposalId(), previousStatus, updatedStatus);
+
+    ProposalStatus statusRecord = ProposalStatus.builder()
+            .proposalId(proposal.getProposalId())
+            .previousStatus(previousStatus)
+            .updatedStatus(updatedStatus)
+            .build();
+    proposalStatusRepository.save(statusRecord);
+} else {
+    logger.warn("No records updated for Proposal ID {}", proposal.getProposalId());
+}
+✅ Logs the update and saves status history.
+
+✅ Handle Errors
+java
+} catch (Exception e) {
+    logger.error("Error updating Proposal ID {}: {}", proposal.getProposalId(), e.getMessage());
+    throw new RuntimeException("Technical error due to database or IO failure");
+}
+✅ Logs unexpected errors.
+
+4️⃣ processProposalsBatch(MultipartFile file, int pageSize, int updateLimit)
+Efficient batch processing with pagination.
+
+java
+public List<ProposalStatus> processProposalsBatch(MultipartFile file, int pageSize, int updateLimit) {
+✅ Processes proposals in smaller batches to optimize performance.
+
+java
+List<ProposalStatus> statusUpdates = new ArrayList<>();
+int updatedCount = 0;
+✅ Initializes lists for tracking updates.
+
+✅ Ensure Uploaded File Is Valid
+java
+if (file == null || file.isEmpty()) {
+    logger.error("No file provided in the request.");
+    throw new RuntimeException("Error: No file uploaded. Please provide an Excel file.");
+}
+✅ Checks if the file is missing or empty.
+
+✅ Perform Pagination
+java
+int totalProposals = Math.min(proposals.size(), updateLimit);
+int totalPages = (int) Math.ceil((double) totalProposals / pageSize);
+✅ Splits proposals into pages, limiting updates per batch.
+
+java
+for (int pageNumber = 0; pageNumber < totalPages; pageNumber++) {
+✅ Loops through each batch.
+
+java
+if (updatedCount >= updateLimit) {
+    logger.info("Reached the update limit of {} proposals. Stopping further updates.", updateLimit);
+    break;
+}
+✅ Stops processing once update limit is reached.
